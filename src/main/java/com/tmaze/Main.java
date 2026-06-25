@@ -11,9 +11,13 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class Main {
-    public static void main(String[] args) {
+    
+    public static int NUM_CLIENTS = 4;
+    
+    public static void main(String[] args) throws IOException {
 
         Klient klient1 = new Klient("Jan Heweliusz", 1);
         Klient klient2 = new Klient("Edmund Hubble",2);
@@ -46,25 +50,45 @@ public class Main {
 
 
 
-        ServerSocket serverSocket;
-        try {
-            serverSocket = new ServerSocket(12129);
-        } catch (Exception e) {
-            System.err.println("Create server socket: " + e);
-            return;
-        }
-        while (true) try {
-            Socket socket = serverSocket.accept();
-            InputStream is = socket.getInputStream();
-            BufferedReader br = new BufferedReader(new InputStreamReader(is));
-            OutputStream os = socket.getOutputStream();
-            PrintWriter pw = new PrintWriter(os, true);
-            String fromClient = br.readLine();
-            System.out.println("From client: [" + fromClient + "]");
-            pw.println("Echo: " + fromClient);
-            socket.close();
-        } catch (Exception e) {
-            System.err.println("Server exception: " + e);
+        AtomicReference<ServerSocket> serverSocket = new AtomicReference<>(new ServerSocket(12345));
+        Thread[] clientThreads = new Thread[NUM_CLIENTS];
+
+        for (int i = 0; i < NUM_CLIENTS; i++) {
+            final int clientId = i + 1; // Identyfikator klienta (zaczynając od 1)
+
+            // Tworzymy Runnable dla logiki klienta
+            Runnable clientTask = () -> {
+
+
+                while (true) try {
+                    Socket socket = serverSocket.get().accept();
+                    InputStream is = socket.getInputStream();
+                    BufferedReader br = new BufferedReader(new InputStreamReader(is));
+                    OutputStream os = socket.getOutputStream();
+                    PrintWriter pw = new PrintWriter(os, true);
+                    String fromClient;
+                    while ((fromClient = br.readLine()) != null) {
+                        System.out.println("From client: [" + fromClient + "]");
+                        pw.println("Echo: OK");
+                        fromClient = br.readLine();
+                        pw.println(fromClient);
+                        System.out.println(allObj.containsKey(fromClient));
+                        if (allObj.keySet().stream().anyMatch(k -> k.contains("klient"))) {
+                            for (Map.Entry<String, Object> entry : allObj.entrySet()) {
+                                if (entry.getKey().contains(fromClient)) {
+                                    System.out.println(entry.getKey() + ": " + entry.getValue());
+                                    pw.println(entry.getKey() + ": " + entry.getValue());
+                                }
+                            }
+                        }
+                    }
+                    socket.close();
+                } catch (Exception e) {
+                    System.err.println("Server exception: " + e);
+                }
+            };
+            clientThreads[i] = new Thread(clientTask, "KlientWątek-" + clientId);
+            clientThreads[i].start();
         }
     }
 }

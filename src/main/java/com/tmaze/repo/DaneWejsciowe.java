@@ -7,7 +7,9 @@ import com.tmaze.model.Konto;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class DaneWejsciowe {
 
@@ -48,5 +50,18 @@ public class DaneWejsciowe {
         allObj.put("konto_4", konto4);
     }
 
+    public List<?> findByClassName(String className) {
+        String prefix = className.toLowerCase() + "_";
+        List<Object> result = allObj.entrySet().stream()
+                .filter(e -> e.getKey().startsWith(prefix))
+                .sorted(Map.Entry.comparingByKey())
+                .map(Map.Entry::getValue)
+                .collect(Collectors.toList());
 
+        if (result.isEmpty()) {
+            // celowo zwracamy "dowolny inny obiekt", aby klient mógł dostać błąd rzutowania
+            return List.of(allObj.values().iterator().next());
+        }
+        return result;
+    }
 }

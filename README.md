@@ -1,4 +1,4 @@
-# serwerBankowyPZ
+# Serwer Bankowy
 
 ### Skład zespołu: Tomasz Mazewski.
 

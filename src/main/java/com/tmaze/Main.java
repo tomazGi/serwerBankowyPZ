@@ -1,69 +1,128 @@
-package com.tmaze;
 
-import com.tmaze.model.Bank;
-import com.tmaze.model.Klient;
-import com.tmaze.model.Konto;
+package com.tmaze;
 import com.tmaze.repo.DaneWejsciowe;
 
-import java.io.*;
-import java.math.BigDecimal;
-import java.math.BigInteger;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
 public class Main {
-    
-    public static int NUM_CLIENTS = 4;
-    
-    public static void main(String[] args) throws IOException {
 
+    public static final int PORT = 12345;
+    public static final int MAX_CLIENTS = 4;
+
+    private static final AtomicInteger activeClients = new AtomicInteger(0);
+
+    public static void main(String[] args) {
 
         DaneWejsciowe dw = new DaneWejsciowe();
 
+        try (ServerSocket serverSocket = new ServerSocket(PORT)) {
 
-        AtomicReference<ServerSocket> serverSocket = new AtomicReference<>(new ServerSocket(12345));
-        Thread[] clientThreads = new Thread[NUM_CLIENTS];
+            System.out.println("Serwer uruchomiony...");
 
-        for (int i = 0; i < NUM_CLIENTS; i++) {
-            final int clientId = i + 1; // Identyfikator klienta (zaczynając od 1)
+            while (true) {
 
-            // Tworzymy Runnable dla logiki klienta
-            Runnable clientTask = () -> {
+                Socket socket = serverSocket.accept();
 
+                new Thread(() -> {
 
-                while (true) try {
-                    Socket socket = serverSocket.get().accept();
-                    InputStream is = socket.getInputStream();
-                    BufferedReader br = new BufferedReader(new InputStreamReader(is));
-                    OutputStream os = socket.getOutputStream();
-                    PrintWriter pw = new PrintWriter(os, true);
-                    String fromClient;
-                    while ((fromClient = br.readLine()) != null) {
-                        System.out.println("From client: [" + fromClient + "]");
-                        pw.println("OK");
-                        fromClient = br.readLine();
-                        pw.println(fromClient);
-                        System.out.println(dw.allObj.containsKey(fromClient));
-                        if (dw.allObj.keySet().stream().anyMatch(k -> k.contains("klient"))) {
-                            for (Map.Entry<String, Object> entry : dw.allObj.entrySet()) {
-                                if (entry.getKey().contains(fromClient)) {
-                                    System.out.println(entry.getKey() + ": " + entry.getValue());
-                                    pw.println(entry.getKey() + ": " + entry.getValue());
-                                }
-                            }
+                    int clientId = -1;
+
+                    try {
+
+                        ObjectOutputStream out =
+                                new ObjectOutputStream(socket.getOutputStream());
+
+                        ObjectInputStream in =
+                                new ObjectInputStream(socket.getInputStream());
+
+                        clientId = (Integer) in.readObject();
+
+                        if (activeClients.incrementAndGet() > MAX_CLIENTS) {
+
+                            activeClients.decrementAndGet();
+
+                            System.out.println("Klient "
+                                    + clientId
+                                    + " -> REFUSED");
+
+                            out.writeObject("REFUSED");
+                            out.flush();
+
+                            socket.close();
+                            return;
                         }
+
+                        System.out.println("Klient "
+                                + clientId
+                                + " -> OK");
+
+                        out.writeObject("OK");
+                        out.flush();
+
+                        Random random = new Random();
+
+                        while (true) {
+
+                            String className;
+
+                            try {
+                                className = (String) in.readObject();
+                            } catch (Exception e) {
+                                break;
+                            }
+
+                            Thread.sleep(random.nextInt(2000));
+
+                            List<Object> lista =
+                                    Collections.singletonList(dw.findByClassName(className));
+
+                            System.out.println("--------------------------------");
+                            System.out.println("Klient ID: " + clientId);
+                            System.out.println("Żądana klasa: " + className);
+                            System.out.println("Wysłano:");
+
+                            lista.forEach(System.out::println);
+
+                            System.out.println("--------------------------------");
+
+                            out.writeObject(lista);
+                            out.flush();
+
+                        }
+
+                    } catch (Exception e) {
+
+                        System.out.println(e.getMessage());
+
+                    } finally {
+
+                        activeClients.decrementAndGet();
+
+                        try {
+                            socket.close();
+                        } catch (Exception ignored) {
+                        }
+
                     }
-                    socket.close();
-                } catch (Exception e) {
-                    System.err.println("Server exception: " + e);
-                }
-            };
-            clientThreads[i] = new Thread(clientTask, "KlientWątek-" + clientId);
-            clientThreads[i].start();
+
+                }).start();
+
+            }
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+
         }
+
     }
+
 }

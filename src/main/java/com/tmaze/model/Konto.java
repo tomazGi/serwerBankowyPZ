@@ -1,9 +1,10 @@
 package com.tmaze.model;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Objects;
 
-public class Konto {
+public class Konto implements Serializable {
     String wlasciciel;
     BigDecimal bilans;
 

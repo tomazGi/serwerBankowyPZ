@@ -1,9 +1,10 @@
 package com.tmaze.model;
 
+import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.Objects;
 
-public class Bank {
+public class Bank implements Serializable {
     String nazwa;
     BigInteger aktywa;
 

@@ -1,8 +1,9 @@
 package com.tmaze.model;
 
+import java.io.Serializable;
 import java.util.Objects;
 
-public class Klient {
+public class Klient implements Serializable {
     String wlasciciel;
     Integer nrKlienta;
 

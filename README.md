@@ -21,6 +21,6 @@ Uruchamiamanie serwera:
 
 ### Deklaracja użycia sztucznej inteligencji: 
 
-Przy tworzenie aplikacji korzystano ze sztucznej inteligencji (ChatGPT) przy:
-- sprawdzeniu czy dany klucz istniej w mapie
-- 
+Przy tworzenie aplikacji korzystano ze sztucznej inteligencji (ChatGPT - darmowa wersja) przy:
+- poprawienie klasy Serwer i Client
+- stworzenie testów
